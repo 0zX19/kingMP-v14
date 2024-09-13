@@ -10,6 +10,6 @@ module.exports = async (client) => {
             if (pull.config.aliases) pull.config.aliases.forEach(a => client.aliases.set(a, pull.config.name));
           };
         };
-        ["Utility", "Owner", "Information", "Moderation"].forEach(x => load(x));
+        ["Utility", "Owner", "Information", "Moderation", "Booster"].forEach(x => load(x));
         console.log(white('[') + green('INFO') + white('] ') + green('SlashCommand ') + white('Events') + green(' Loaded!'));
 };

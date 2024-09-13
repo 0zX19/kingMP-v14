@@ -1,9 +1,7 @@
 const { Client, Collection, GatewayIntentBits, Partials, EmbedBuilder, AttachmentBuilder, PermissionsBitField } = require("discord.js");
 const { Manager } = require("erela.js");
 const Spotify = require("better-erela.js-spotify").default;
-const Deezer = require("erela.js-deezer");
 const AppleMusic = require("better-erela.js-apple").default;
-const Facebook = require("erela.js-facebook");
 const { I18n } = require("locale-parser");
 const { ClusterClient, getInfo } = require("discord-hybrid-sharding");
 const { createCanvas, loadImage } = require('@napi-rs/canvas');
@@ -65,8 +63,6 @@ class MainClient extends Client {
       autoPlay: true,
       plugins: [
         new Spotify(),
-        new Facebook(),
-        new Deezer(),
         new AppleMusic()
       ],
       send(id, payload) {
@@ -123,6 +119,49 @@ client.on('messageCreate', message => {
     }
     if (message.content.toString().toLowerCase() === "<@!>") {
         message.reply('LU TAG SEKALI LAGI GW TIMBUK LU !!!');
+    }
+});
+
+const BoosterNotification = require('./settings/models/BoosterDatabase.js');
+
+client.on('guildMemberUpdate', async (oldMember, newMember) => {
+    // Check if the member started boosting
+    if (!oldMember.premiumSince && newMember.premiumSince) {
+        // Fetch guild settings from the database
+        const guildSettings = await BoosterNotification.findOne({ guildId: newMember.guild.id });
+
+        // Ensure the booster notification system is enabled and has a valid channel
+        if (!guildSettings || !guildSettings.isEnabled || !guildSettings.channelId) return;
+
+        // Get the notification channel from the guild settings
+        const channel = newMember.guild.channels.cache.get(guildSettings.channelId);
+        if (!channel) return;
+
+        // Fetch the current total number of boosters
+        const totalBoosters = newMember.guild.premiumSubscriptionCount || 0;
+
+        // Replace placeholders in the custom message
+        const customMessage = guildSettings.message
+            .replace('{user}', newMember.user.toString())
+            .replace('{totalboosters}', totalBoosters);
+
+         // Format current date and time for the footer
+            const now = new Date();
+            const formattedDate = now.toLocaleDateString('en-US'); // Format date as MM/DD/YYYY
+            const formattedTime = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true }); // Format time as hh:mm AM/PM
+
+        // Create the embed for the boost notification
+        const embed = new EmbedBuilder()
+            .setAuthor({ name: '🎉🎉 BOOSTER PARTY 🎉🎉', iconURL: "https://cdn3.emoji.gg/emojis/1819_boostingtop.gif" })
+            .setDescription(customMessage)
+            .setColor(client.color) // Adjust color to your preference
+            .setThumbnail(newMember.user.displayAvatarURL({ dynamic: true })) // Set the member's avatar as the thumbnail
+            .setFooter({ 
+                text: `Server Boosted 🎉 〚🚀〛boost・sistem•${formattedDate} ${formattedTime}` // Custom footer format
+            });
+
+        // Send the boost notification embed to the channel
+        channel.send({ embeds: [embed] });
     }
 });
 
@@ -206,7 +245,7 @@ client.on('guildMemberAdd', async (member) => {
         name: `welcome.png`,
       };
 
-      const channel = member.guild.channels.cache.get("DI ISI CHANNEL ID");
+      const channel = member.guild.channels.cache.get("1065571340997894206");
 
       try {
         if (channel) channel.send({ files: [file] });
@@ -219,7 +258,7 @@ client.on('guildMemberAdd', async (member) => {
         // Event ketika anggota baru bergabung
     client.on('guildMemberAdd', member => {
       // Dapatkan channel 'welcome' (pastikan channel ini ada di server Anda)
-      const channel = member.guild.channels.cache.find(ch => ch.id === 'DI ISI CHANNEL ID');
+      const channel = member.guild.channels.cache.find(ch => ch.id === '1065571340997894206');
       if (!channel) return;
       const total = member.guild.memberCount;
 
@@ -240,157 +279,6 @@ client.on('guildMemberAdd', async (member) => {
       channel.send({ content: `Hello <@${member.user.id}>`, embeds: [embed] });
     });
 
-//     const giveawayModel = require("./settings/models/Giveaways.js");
-//     const { GiveawaysManager } = require("discord-giveaways");
-//     const GiveawayManagerWithOwnDatabase = class extends GiveawaysManager {
-//       async getAllGiveaways() {
-//         return await giveawayModel.find().lean().exec();
-//       }
-
-//       async saveGiveaway(messageId, giveawayData) {
-//         await giveawayModel.create(giveawayData);
-//         return true;
-//       }
-
-//       async editGiveaway(messageId, giveawayData) {
-//         await giveawayModel
-//           .updateOne({ messageId }, giveawayData, { omitUndefined: true })
-//           .exec();
-//         return true;
-//       }
-
-//       async deleteGiveaway(messageId) {
-//         await giveawayModel.deleteOne({ messageId }).exec();
-//         return true;
-//       }
-//     };
-
-// const manager = new GiveawayManagerWithOwnDatabase(client, {
-//   default: {
-//     botsCanWin: false,
-//     embedColor: "White",
-//     embedColorEnd: "White",
-//     reaction: "<:haruka:1154521466843430912>",
-//     lastChance: {
-//       enabled: true,
-//       content: `🛑 **Last chance to enter** 🛑`,
-//       threshold: 5000,
-//       embedColor: 'White'
-//   },
-//   pauseOptions: {
-//     isPaused: true,
-//     content: '⚠️ **THIS GIVEAWAY IS PAUSED !** ⚠️',
-//     unpauseAfter: null,
-//     embedColor: 'White',
-//     infiniteDurationText: '`NEVER`'
-// }
-//   },
-// });
-// client.giveawaysManager = manager;
-// client.giveawaysManager.on(
-//   "giveawayReactionAdded",
-//   async (giveaway, reactor, messageReaction) => {
-//     let approved =  new EmbedBuilder()
-//     .setTimestamp()
-//     .setColor(client.color)
-//     .setTitle("Entry Approved! | You have a chance to win!!")
-//     .setDescription(
-//       `Your entry to [This Giveaway](https://discord.com/channels/${giveaway.guildId}/${giveaway.channelId}/${giveaway.messageId}) has been approved!`
-//     )
-//     .setFooter({ text: "Haruka" })
-//     .setTimestamp()
-//    let denied =  new EmbedBuilder()
-//     .setTimestamp()
-//     .setColor(client.color)
-//     .setTitle(":x: Entry Denied | Databse Entry Not Found & Returned!")
-//     .setDescription(
-//       `Your entry to [This Giveaway](https://discord.com/channels/${giveaway.guildId}/${giveaway.channelId}/${giveaway.messageId}) has been denied, please review the requirements to the giveaway properly.`
-//     )
-//     .setFooter({ text: "Haruka" })
-
-//     let client = messageReaction.message.client
-//     if (reactor.user.bot) return;
-//     if(giveaway.extraData) {
-//       if (giveaway.extraData.server !== "null") {
-//         try { 
-//         await client.guilds.cache.get(giveaway.extraData.server).members.fetch(reactor.id)
-//         return reactor.send({
-//           embeds: [approved]
-//         });
-//         } catch(e) {
-//           messageReaction.users.remove(reactor.user);
-//           return reactor.send({
-//             embeds: [denied]
-//           }).catch(e => {})
-//         }
-//       }
-//       if (giveaway.extraData.role !== "null" && !reactor.roles.cache.get(giveaway.extraData.role)){ 
-//         messageReaction.users.remove(reactor.user);
-//         return reactor.send({
-//           embeds: [denied]
-//         }).catch(e => {})
-//       }
-
-//       return reactor.send({
-//         embeds: [approved]
-//       }).catch(e => {})
-//     } else {
-//         return reactor.send({
-//           embeds: [approved]
-//         }).catch(e => {})
-//     }
-//   }
-// );
-
-// client.giveawaysManager.on(
-//   "giveawayReactionRemoved",
-//   (giveaway, member, reaction) => {
-//     return member.send({
-//         embeds: [new EmbedBuilder()
-//           .setTimestamp()
-//           .setTitle('❓ Hold Up Did You Just Remove a Reaction From A Giveaway?')
-//           .setColor(client.color)
-//           .setDescription(
-//             `Your entery to [This Giveaway](https://discord.com/channels/${giveaway.guildId}/${giveaway.channelId}/${giveaway.messageId}) was recorded but you un-reacted, since you don't need **${giveaway.prize}** I would have to choose someone else 😭`
-//           )
-//           .setFooter({ text: "Think It was a mistake? Go react again!" })
-//         ]
-//       }).catch(e => {})
-//   }
-// );
-
-// client.giveawaysManager.on("giveawayEnded", async (giveaway, winners) => {
-//     winners.forEach((member) => {
-//         member.send({
-//           embeds: [new EmbedBuilder()
-//             .setTitle(`🎁 Let's goo!`)
-//             .setColor(client.color)
-//             .setDescription(`Hello there ${member.user}\n I heard that you have won **[[This Giveaway]](https://discord.com/channels/${giveaway.guildId}/${giveaway.channelId}/${giveaway.messageId})**\n Good Job On Winning **${giveaway.prize}!**\nDirect Message the host to claim your prize!!`)
-//             .setTimestamp()
-//             .setFooter({
-//               text: `${member.user.username}`, 
-//               iconURL: member.user.displayAvatarURL()
-//              })
-//           ]
-//         }).catch(e => {})
-//       });
-// });
-// client.giveawaysManager.on("giveawayRerolled", async (giveaway, winners) => {
-//   winners.forEach((member) => {
-//     member.send({
-//       embeds: [new EmbedBuilder()
-//         .setTitle(`🎁 Let's goo! We Have A New Winner`)
-//         .setColor(client.color)
-//         .setDescription(`Hello there ${member.user}\n I heard that the host rerolled and you have won **[[This Giveaway]](https://discord.com/channels/${giveaway.guildId}/${giveaway.channelId}/${giveaway.messageId})**\n Good Job On Winning **${giveaway.prize}!**\nDirect Message the host to claim your prize!!`)
-//         .setTimestamp()
-//         .setFooter({
-//           text: `${member.user.username}`, 
-//           iconURL: member.user.displayAvatarURL()
-//         })
-//       ]
-//     }).catch(e => {})
-//   });
-// });
 
     ["aliases", "commands", "premiums"].forEach(x => client[x] = new Collection());
     ["loadCommand", "loadEvent", "loadPlayer", "loadDatabase"].forEach(x => require(`./handlers/${x}`)(client));
